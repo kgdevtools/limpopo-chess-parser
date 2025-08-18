@@ -174,6 +174,53 @@ router.get("/rankings", async (req, res) => {
   }
 });
 
+// GET overall stats (tournaments count, players count, latest date)
+router.get("/stats", async (_req, res) => {
+  try {
+    const { count: tournaments_count, error: tErr } = await supabase
+      .from("tournaments")
+      .select("id", { count: "exact", head: true });
+    if (tErr) throw tErr;
+
+    const { count: players_count, error: pErr } = await supabase
+      .from("players")
+      .select("id", { count: "exact", head: true });
+    if (pErr) throw pErr;
+
+    const { data: latest, error: lErr } = await supabase
+      .from("tournaments")
+      .select("date, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (lErr) throw lErr;
+
+    res.json({
+      tournaments_count: tournaments_count ?? 0,
+      players_count: players_count ?? 0,
+      latest_created_at: latest && latest[0] ? latest[0].created_at : null,
+      latest_date: latest && latest[0] ? latest[0].date : null,
+    });
+  } catch (err) {
+    console.error("[tournaments] stats error:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// GET players count for a tournament
+router.get("/:id/players/count", async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from("players")
+      .select("id", { count: "exact", head: true })
+      .eq("tournament_id", req.params.id);
+    if (error) throw error;
+    res.json({ players_count: count ?? 0 });
+  } catch (err) {
+    console.error("[tournaments] players count error:", err);
+    res.status(500).json({ error: "Failed to fetch players count" });
+  }
+});
+
 // GET single tournament with players
 router.get("/:id", async (req, res) => {
   try {

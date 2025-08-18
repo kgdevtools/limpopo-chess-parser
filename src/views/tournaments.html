@@ -8,18 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0b0c0f;
-      --card: #111318;
-      --muted: #a9b1bd;
-      --text: #e6eaf2;
-      --primary: #3b82f6;
-      --border: #1f2430;
-      --radius: 12px;
-    }
-    @media (prefers-color-scheme: light) {
-      :root { --bg:#f6f7fb; --card:#fff; --muted:#4b5563; --text:#0b0c0f; --border:#e5e7eb; }
-    }
+    :root { --bg:#23282e; --card:#23282e; --muted:#8b8c89; --text:#e7ecef; --primary:#274c77; --border:rgba(255,255,255,0.12); --radius:12px; }
+    @media (prefers-color-scheme: light) { :root { --bg:#ffffff; --card:#ffffff; --muted:#8b8c89; --text:#3a3a3a; --border:#c0c2c4; } }
     body {
       font-family: "Geist", system-ui, -apple-system, Segoe UI, Roboto, Arial;
       margin: 0; padding: 16px; background: var(--bg); color: var(--text);
@@ -42,6 +32,7 @@
       cursor: pointer;
     }
     button:hover { filter: brightness(1.05); }
+    button { border-radius: 8px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
     th { background: rgba(255,255,255,0.04); font-weight: 600; }
@@ -85,7 +76,26 @@
   </style>
 </head>
 <body>
+  <div style="display:grid;place-items:center;margin-bottom:8px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" fill="none" style="max-width: min(420px, 60vw); height: auto;">
+      <title>Limpopo Chess Academy Mark</title>
+      <g fill="#274c77">
+        <circle cx="32" cy="16" r="6"/>
+        <rect x="26" y="24" width="12" height="3" rx="1.5"/>
+        <path d="M24 48 L40 48 L36 32 L28 32 Z"/>
+        <rect x="16" y="52" width="32" height="6" rx="2"/>
+      </g>
+      <g font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" style="letter-spacing:-0.04em;">
+        <text x="64" y="28" font-size="24" font-weight="800" fill="#274c77">Limpopo</text>
+        <text x="64" y="52" font-size="18" font-weight="700" fill="#3a3a3a">Chess Academy</text>
+      </g>
+    </svg>
+  </div>
   <h1>Chess Tournament Results</h1>
+  <div id="stats" class="tournament" style="max-width:1000px;">
+    <h2>Overview</h2>
+    <p class="muted" id="statsBody">Loading stats…</p>
+  </div>
   <div id="list" class="muted">Loading tournaments...</div>
 
   <script>
@@ -94,6 +104,18 @@
     async function loadTournaments() {
       const listDiv = document.getElementById("list");
       try {
+        // stats
+        const statsRes = await fetch('/api/tournaments/stats');
+        if (statsRes.ok) {
+          const s = await statsRes.json();
+          const statsEl = document.getElementById('statsBody');
+          statsEl.innerHTML = `
+            <strong>Tournaments:</strong> ${s.tournaments_count} &nbsp;•&nbsp;
+            <strong>Players:</strong> ${s.players_count} &nbsp;•&nbsp;
+            <strong>Latest upload:</strong> ${s.latest_created_at ? new Date(s.latest_created_at).toLocaleString() : '—'}
+          `;
+        }
+
         const res = await fetch("/api/tournaments");
         if (!res.ok) throw new Error(`Failed to load (${res.status})`);
         const tournaments = await res.json();
@@ -109,15 +131,26 @@
           container.className = "tournament";
           container.innerHTML = `
             <h2>${title}</h2>
-            <p class="muted">
+            <p class="muted" id="meta-${t.id}">
                <strong>Location:</strong> ${safe(t.location)}<br/>
                <strong>Date:</strong> ${safe(t.date)}<br/>
-               <strong>Uploaded:</strong> ${new Date(t.created_at).toLocaleString()}
+               <strong>Uploaded:</strong> ${new Date(t.created_at).toLocaleString()}<br/>
+               <strong>Players:</strong> <span id="pc-${t.id}">…</span>
             </p>
             <button onclick="viewTournament('${t.id}')">View Results</button>
             <div id="results-${t.id}" style="display:none;"></div>
           `;
           listDiv.appendChild(container);
+
+          // fetch players count for each tournament
+          try {
+            const pcRes = await fetch(`/api/tournaments/${t.id}/players/count`);
+            if (pcRes.ok) {
+              const { players_count } = await pcRes.json();
+              const pcEl = document.getElementById(`pc-${t.id}`);
+              if (pcEl) pcEl.textContent = players_count;
+            }
+          } catch {}
         }
       } catch (err) {
         listDiv.textContent = err.message || "Failed to load tournaments.";

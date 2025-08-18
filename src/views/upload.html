@@ -9,24 +9,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0c0f;
-      --card: #111318;
-      --muted: #a9b1bd;
-      --text: #e6eaf2;
-      --primary: #3b82f6;
-      --primary-600: #2563eb;
+      --bg: #23282e; /* charcoal */
+      --card: #23282e;
+      --muted: #8b8c89; /* mid-gray */
+      --text: #e7ecef; /* light gray */
+      --primary: #274c77; /* royal blue */
+      --primary-600: #274c77;
       --success: #10b981;
       --error: #ef4444;
-      --border: #1f2430;
+      --border: rgba(255,255,255,0.12);
       --radius: 12px;
     }
     @media (prefers-color-scheme: light) {
       :root { 
-        --bg: #f6f7fb; 
-        --card: #ffffff; 
-        --muted: #4b5563; 
-        --text: #0b0c0f; 
-        --border: #e5e7eb;
+        --bg: #ffffff;
+        --card: #ffffff;
+        --muted: #8b8c89;
+        --text: #3a3a3a; /* charcoal */
+        --border: #c0c2c4; /* silver */
       }
     }
     * { box-sizing: border-box; }
@@ -149,7 +149,7 @@
       gap: 8px;
       padding: 10px 14px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px; /* a bit less roundy */
       background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
       color: var(--text);
       cursor: pointer;
@@ -213,6 +213,12 @@
       textarea { height: clamp(420px, 66vh, 76vh); }
       h1 { font-size: 28px; }
     }
+    /* Upload controls sizing on large screens */
+    @media (min-width: 1280px) {
+      .controls { display: flex; }
+      .controls > input[type="file"] { flex: 0 1 60%; min-width: 280px; }
+      .controls > #parseBtn { flex: 0 1 40%; }
+    }
   </style>
   <script>
     function setButtonLoading(btn, isLoading, labelWhenIdle) {
@@ -226,7 +232,7 @@
       }
     }
   </script>
-  </head>
+</head>
 <body>
   <div class="container">
     <div class="card">
@@ -246,10 +252,10 @@
             </g>
           </svg>
         </div>
-        <h1>Upload Tournament File</h1>
+  <h1>Upload Tournament File</h1>
         <p class="subtle">Upload a Chess-Results Excel file, preview parsed JSON, and save to your database.</p>
       </div>
-      <form id="uploadForm" enctype="multipart/form-data">
+  <form id="uploadForm" enctype="multipart/form-data">
         <div class="field">
           <label for="fileInput" class="label">Tournament Excel</label>
           <div class="controls">
@@ -259,14 +265,14 @@
           </div>
           <div id="fileInfo" class="file-info">Choose a .xls or .xlsx file</div>
         </div>
-      </form>
+  </form>
       <div id="status" class="status" role="status" aria-live="polite"></div>
-      <textarea id="output" readonly placeholder="Parsed JSON will appear here..."></textarea>
-      <div class="buttons">
+  <textarea id="output" readonly placeholder="Parsed JSON will appear here..."></textarea>
+  <div class="buttons">
         <button id="saveBtn" class="btn" disabled>Save to Database</button>
-      </div>
-      <div class="link" id="tournamentsLink">
-        ✅ Saved! <a href="/tournaments.html">Go to Tournaments</a>
+  </div>
+  <div class="link" id="tournamentsLink">
+    ✅ Saved! <a href="/tournaments.html">Go to Tournaments</a>
       </div>
       <div class="footer">Tips: Large files can take a few seconds. Ensure a stable connection when saving.</div>
     </div>
@@ -310,16 +316,16 @@
       parseBadge.style.display = "none";
 
       try {
-        const formData = new FormData(form);
+      const formData = new FormData(form);
         const res = await fetch("/api/upload", { method: "POST", body: formData });
         if (!res.ok) {
           const msg = `Parse failed (${res.status})`;
           throw new Error(msg);
         }
-        const data = await res.json();
-        parsedData = data;
-        output.value = JSON.stringify(data, null, 2);
-        saveBtn.disabled = false;
+      const data = await res.json();
+      parsedData = data;
+      output.value = JSON.stringify(data, null, 2);
+      saveBtn.disabled = false;
         parseBadge.style.display = "inline-block";
         parseBadge.className = "badge success";
         parseBadge.textContent = "Parsed";
@@ -349,19 +355,19 @@
       setButtonLoading(saveBtn, true, "Save to Database");
       tournamentsLink.style.display = "none";
       try {
-        const res = await fetch("/api/upload/to-db", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parsedData),
-        });
+      const res = await fetch("/api/upload/to-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedData),
+      });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
           const msg = text || `Save failed (${res.status})`;
           throw new Error(msg);
         }
-        const result = await res.json();
+      const result = await res.json();
         if (result && result.message) {
-          tournamentsLink.style.display = "block";
+        tournamentsLink.style.display = "block";
           showStatus("Saved to database.", "success");
           clearAfterSave();
         } else {

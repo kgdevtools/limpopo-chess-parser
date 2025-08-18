@@ -18,6 +18,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/upload", uploadRoutes);
 app.use("/api/tournaments", tournamentRoutes);
 
+// src/server.ts (add after routes)
+app.use(express.static(path.join(__dirname, "public")));
+
 // Serve frontend views
 app.use(express.static(path.join(__dirname, "views")));
 
