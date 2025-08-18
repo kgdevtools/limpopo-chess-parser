@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rankings Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c0f; --card: #111318; --muted: #a9b1bd; --text: #e6eaf2; --primary: #3b82f6; --border: #1f2430; --radius: 12px;
+      --success: #10b981; --error: #ef4444;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#f6f7fb; --card:#fff; --muted:#4b5563; --text:#0b0c0f; --border:#e5e7eb; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Geist", system-ui, -apple-system, Segoe UI, Roboto, Arial; color: var(--text); background: var(--bg); }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 22px; }
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .control { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; }
+    .control input { background: transparent; border: none; color: var(--text); outline: none; min-width: 64px; }
+    .btn { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: linear-gradient(180deg, rgba(59,130,246,0.25), rgba(59,130,246,0.15)); color: var(--text); cursor: pointer; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .status { margin-top: 6px; color: var(--muted); font-size: 13px; min-height: 18px; }
+    .error { color: var(--error); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; vertical-align: top; }
+    th { background: rgba(255,255,255,0.04); font-weight: 600; position: sticky; top: 0; }
+    .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); margin: 2px 6px 2px 0; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.25); border-top-color: currentColor; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 767px) { .wrap { padding: 12px; } th, td { padding: 8px; } h1 { font-size: 18px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <h1>Rankings Dashboard</h1>
+        <div class="controls">
+          <div class="control">
+            <label for="limit" class="muted">Limit</label>
+            <input id="limit" type="number" min="1" max="500" value="100" />
+          </div>
+          <div class="control">
+            <label for="q" class="muted">Filter name</label>
+            <input id="q" type="text" placeholder="e.g. Nkosi" />
+          </div>
+          <button id="refreshBtn" class="btn">Refresh</button>
+          <a class="btn" href="/" style="text-decoration:none">Upload</a>
+          <a class="btn" href="/tournaments" style="text-decoration:none">Tournaments</a>
+        </div>
+      </div>
+
+      <div id="status" class="status">Loading… <span class="spinner" aria-hidden="true"></span></div>
+
+      <div style="overflow:auto; max-height: 72vh;">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Federation</th>
+              <th>Rating</th>
+              <th>Avg TB1</th>
+              <th>Top 6 (TB1)</th>
+              <th>Played</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="7" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const rowsEl = document.getElementById('rows');
+    const limitEl = document.getElementById('limit');
+    const qEl = document.getElementById('q');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    function fmtAvg(x) { return x == null ? '—' : Number(x).toFixed(2); }
+    function safe(v) { return (v ?? '') === '' ? '—' : v; }
+
+    async function load() {
+      const limit = Math.max(1, Math.min(500, parseInt(limitEl.value || '100', 10) || 100));
+      const q = (qEl.value || '').trim().toLowerCase();
+      statusEl.innerHTML = 'Loading… <span class="spinner" aria-hidden="true"></span>';
+      rowsEl.innerHTML = '<tr><td colspan="7" class="muted">Loading…</td></tr>';
+      try {
+        const res = await fetch(`/api/tournaments/rankings?limit=${limit}`);
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
+        let data = await res.json();
+        if (q) data = data.filter((r) => String(r.name || '').toLowerCase().includes(q));
+
+        // render
+        if (!data.length) {
+          rowsEl.innerHTML = '<tr><td colspan="7" class="muted">No results</td></tr>';
+          statusEl.textContent = '';
+          return;
+        }
+
+        rowsEl.innerHTML = '';
+        data.forEach((r, idx) => {
+          const used = Array.isArray(r.tournaments_used) ? r.tournaments_used : [];
+          const played = Array.isArray(r.tournaments_played) ? r.tournaments_played : [];
+          const pills = used.map(u => `<span class="pill mono" title="${safe(u.tournament_name) || u.tournament_id} | ${safe(u.date)}">${fmtAvg(u.tb1)}</span>`).join('');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="mono">${idx + 1}</td>
+            <td>${safe(r.name)}</td>
+            <td>${safe(r.federation)}</td>
+            <td class="mono">${safe(r.rating)}</td>
+            <td class="mono">${fmtAvg(r.average_performance)}</td>
+            <td>${pills}</td>
+            <td class="mono">${played.length}</td>
+          `;
+          rowsEl.appendChild(tr);
+        });
+        statusEl.textContent = `${data.length} players`;
+      } catch (err) {
+        statusEl.classList.add('error');
+        statusEl.textContent = err.message || 'Failed to load rankings';
+      }
+    }
+
+    refreshBtn.addEventListener('click', load);
+    qEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+    window.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>
+
+

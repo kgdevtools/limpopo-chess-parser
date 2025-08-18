@@ -4,115 +4,378 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tournament Upload</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0b0c0f;
+      --card: #111318;
+      --muted: #a9b1bd;
+      --text: #e6eaf2;
+      --primary: #3b82f6;
+      --primary-600: #2563eb;
+      --success: #10b981;
+      --error: #ef4444;
+      --border: #1f2430;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { 
+        --bg: #f6f7fb; 
+        --card: #ffffff; 
+        --muted: #4b5563; 
+        --text: #0b0c0f; 
+        --border: #e5e7eb;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
+      font-family: "Geist", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 50% -10%, rgba(59,130,246,0.15), transparent 60%), var(--bg);
+      padding: 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding-left: clamp(12px, 2vw, 24px);
+      padding-right: clamp(12px, 2vw, 24px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+    /* Keep container single-column; two-column layout is handled inside .card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      width: 100%;
+    }
+    /* Ensure the card does not shrink due to grid sizing quirks */
+    .container > .card { min-width: 0; }
+    .header {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      margin-bottom: 6px;
     }
-    h1 {
-      margin-bottom: 20px;
+    .logo {
+      display: grid;
+      place-items: center;
+      width: clamp(220px, 60vw, 420px);
+      aspect-ratio: 240/64;
+      margin: 0 auto 8px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      border: 1px solid var(--border);
+      overflow: hidden;
     }
-    form {
-      margin-bottom: 10px;
-    }
-    textarea {
-      flex: 1;
+    .logo svg, .logo img {
       width: 100%;
-      resize: none;
+      height: 100%;
+      display: block;
+    }
+    h1 { 
+      font-size: 24px; 
+      line-height: 1.2; 
+      margin: 0; 
+    }
+    p.subtle { 
+      margin: 0; 
+      color: var(--muted); 
+      font-size: 14px; 
+    }
+    form { display: block; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    .label { font-size: 13px; color: var(--muted); }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+    input[type="file"] {
+      max-width: 100%;
+      color: var(--text);
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+    input[type="file"]:hover { border-color: #2a3342; }
+    input[type="file"]:focus { outline: 2px solid rgba(59,130,246,0.45); outline-offset: 2px; }
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(59,130,246,0.25), rgba(59,130,246,0.15));
+      color: var(--text);
+      cursor: pointer;
+    }
+    input[type="file"]::file-selector-button:hover { filter: brightness(1.05); }
+    .file-info { font-size: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      height: clamp(260px, 45vh, 62vh);
+      min-height: 240px;
+      resize: vertical;
       white-space: pre;
       overflow: auto;
-      font-family: "Courier New", monospace;
+      font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      background: #1e1e1e;
-      color: #f8f8f2;
-      font-size: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f1116;
+      color: #d8dee9;
+      font-size: 13px;
     }
-    .buttons {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-    }
-    .link {
-      margin-top: 15px;
-      display: none;
-    }
-    button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 4px;
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .buttons { display: flex; gap: 8px; }
+    .link { margin-top: 6px; display: none; }
+    .status { margin-top: 8px; font-size: 14px; color: var(--muted); min-height: 20px; }
+    .error { color: var(--error); }
+    .error-outline { outline: 2px solid var(--error); outline-offset: 2px; border-color: var(--error) !important; }
+    .success { color: var(--success); }
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+      color: var(--text);
       cursor: pointer;
-      background-color: #007bff;
-      color: white;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
     }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
+    .btn:hover { transform: translateY(-1px); border-color: #2a3342; }
+    .btn:active { transform: translateY(0); }
+    .btn.primary { background: linear-gradient(180deg, rgba(59,130,246,0.25), rgba(59,130,246,0.15)); border-color: rgba(59,130,246,0.45); }
+    .btn.success { background: linear-gradient(180deg, rgba(16,185,129,0.25), rgba(16,185,129,0.15)); border-color: rgba(16,185,129,0.5); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+    .badge.success { color: var(--success); border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.1); }
+    .badge.error { color: var(--error); border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+    /* Responsive breakpoints */
+    /* Extra small (phones, portrait): 0–479px */
+    @media (max-width: 479px) {
+      .logo { width: clamp(200px, 80vw, 280px); }
+      textarea { height: clamp(220px, 42vh, 56vh); }
+    }
+
+    /* Small (phones, landscape): 480–639px */
+    @media (min-width: 480px) and (max-width: 639px) {
+      .logo { width: clamp(240px, 70vw, 360px); }
+      textarea { height: clamp(240px, 45vh, 58vh); }
+    }
+
+    /* Medium (tablets, portrait): 640–767px */
+    @media (min-width: 640px) and (max-width: 767px) {
+      .logo { width: clamp(260px, 60vw, 400px); }
+      textarea { height: clamp(280px, 48vh, 60vh); }
+    }
+
+    /* Large (tablets, landscape / small laptops): 768–1023px */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .container { width: 100%; }
+      .card { gap: 18px; }
+      textarea { height: clamp(320px, 52vh, 64vh); }
+    }
+
+    /* Extra large (desktops): 1024–1279px */
+    @media (min-width: 1024px) and (max-width: 1279px) {
+      .container { width: 100%; }
+      .card { padding: 20px; }
+      textarea { height: clamp(360px, 62vh, 72vh); }
+    }
+
+    /* 2XL (large desktops): 1280px+ */
+    @media (min-width: 1280px) {
+      .container { width: 100%; }
+      .card { padding: 22px; }
+      textarea { height: clamp(420px, 66vh, 76vh); }
+      h1 { font-size: 28px; }
     }
   </style>
-</head>
+  <script>
+    function setButtonLoading(btn, isLoading, labelWhenIdle) {
+      if (!btn) return;
+      btn.disabled = !!isLoading;
+      if (isLoading) {
+        btn.dataset._label = labelWhenIdle || btn.textContent;
+        btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Working…</span>';
+      } else {
+        btn.textContent = labelWhenIdle || btn.dataset._label || btn.textContent;
+      }
+    }
+  </script>
+  </head>
 <body>
-  <h1>Upload Tournament File</h1>
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="file" required />
-    <button type="submit">Parse File</button>
-  </form>
-
-  <textarea id="output" readonly placeholder="Parsed JSON will appear here..."></textarea>
-
-  <div class="buttons">
-    <button id="saveBtn" disabled>Save to Database</button>
-  </div>
-
-  <div class="link" id="tournamentsLink">
-    ✅ Saved! <a href="/tournaments.html">Go to Tournaments</a>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo" id="appLogo" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" fill="none" role="img" aria-label="Limpopo Chess Academy Mark">
+            <title>Limpopo Chess Academy Mark</title>
+            <g fill="#274c77">
+              <circle cx="32" cy="16" r="6"/>
+              <rect x="26" y="24" width="12" height="3" rx="1.5"/>
+              <path d="M24 48 L40 48 L36 32 L28 32 Z"/>
+              <rect x="16" y="52" width="32" height="6" rx="2"/>
+            </g>
+            <g font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" style="letter-spacing:-0.04em;">
+              <text x="64" y="28" font-size="24" font-weight="800" fill="#274c77">Limpopo</text>
+              <text x="64" y="52" font-size="18" font-weight="700" fill="#3a3a3a">Chess Academy</text>
+            </g>
+          </svg>
+        </div>
+        <h1>Upload Tournament File</h1>
+        <p class="subtle">Upload a Chess-Results Excel file, preview parsed JSON, and save to your database.</p>
+      </div>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <div class="field">
+          <label for="fileInput" class="label">Tournament Excel</label>
+          <div class="controls">
+            <input type="file" name="file" id="fileInput" accept=".xls,.xlsx" required />
+            <button type="submit" class="btn primary" id="parseBtn">Parse File</button>
+            <span id="parseBadge" class="badge" style="display:none;">Parsed</span>
+          </div>
+          <div id="fileInfo" class="file-info">Choose a .xls or .xlsx file</div>
+        </div>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <textarea id="output" readonly placeholder="Parsed JSON will appear here..."></textarea>
+      <div class="buttons">
+        <button id="saveBtn" class="btn" disabled>Save to Database</button>
+      </div>
+      <div class="link" id="tournamentsLink">
+        ✅ Saved! <a href="/tournaments.html">Go to Tournaments</a>
+      </div>
+      <div class="footer">Tips: Large files can take a few seconds. Ensure a stable connection when saving.</div>
+    </div>
   </div>
 
   <script>
     const form = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const parseBtn = document.getElementById("parseBtn");
+    const parseBadge = document.getElementById("parseBadge");
     const output = document.getElementById("output");
     const saveBtn = document.getElementById("saveBtn");
     const tournamentsLink = document.getElementById("tournamentsLink");
+    const statusEl = document.getElementById("status");
+    
+    const fileInfoEl = document.getElementById("fileInfo");
 
     let parsedData = null;
 
+    function showStatus(message, type) {
+      statusEl.textContent = message || "";
+      statusEl.classList.remove("error", "success");
+      if (type) statusEl.classList.add(type);
+    }
+
+    function clearAfterSave() {
+      form.reset();
+      parsedData = null;
+      output.value = "";
+      saveBtn.disabled = true;
+      parseBadge.style.display = "none";
+      output.classList.remove("error-outline");
+      if (fileInfoEl) fileInfoEl.textContent = "Choose a .xls or .xlsx file";
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
+      showStatus("");
+      output.classList.remove("error-outline");
+      setButtonLoading(parseBtn, true, "Parse File");
+      parseBadge.style.display = "none";
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        const formData = new FormData(form);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const msg = `Parse failed (${res.status})`;
+          throw new Error(msg);
+        }
+        const data = await res.json();
+        parsedData = data;
+        output.value = JSON.stringify(data, null, 2);
+        saveBtn.disabled = false;
+        parseBadge.style.display = "inline-block";
+        parseBadge.className = "badge success";
+        parseBadge.textContent = "Parsed";
+        showStatus("File parsed successfully.", "success");
+        // Scroll preview into view on narrow screens
+        if (window.innerWidth < 1024) {
+          output.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } catch (err) {
+        output.classList.add("error-outline");
+        showStatus(err.message || "An unexpected error occurred while parsing.", "error");
+      } finally {
+        setButtonLoading(parseBtn, false, "Parse File");
+      }
+    });
 
-      const data = await res.json();
-      parsedData = data;
-
-      output.value = JSON.stringify(data, null, 2);
-      saveBtn.disabled = false;
+    // Update file info text on selection
+    fileInput.addEventListener("change", () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (fileInfoEl) fileInfoEl.textContent = f ? `${f.name} (${Math.round(f.size/1024)} KB)` : "Choose a .xls or .xlsx file";
     });
 
     saveBtn.addEventListener("click", async () => {
       if (!parsedData) return;
-
-      const res = await fetch("/api/upload/to-db", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsedData),
-      });
-
-      const result = await res.json();
-      console.log("Save result:", result);
-
-      if (result.message) {
-        tournamentsLink.style.display = "block";
+      showStatus("");
+      output.classList.remove("error-outline");
+      setButtonLoading(saveBtn, true, "Save to Database");
+      tournamentsLink.style.display = "none";
+      try {
+        const res = await fetch("/api/upload/to-db", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(parsedData),
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          const msg = text || `Save failed (${res.status})`;
+          throw new Error(msg);
+        }
+        const result = await res.json();
+        if (result && result.message) {
+          tournamentsLink.style.display = "block";
+          showStatus("Saved to database.", "success");
+          clearAfterSave();
+        } else {
+          showStatus("Unexpected response from server.", "error");
+        }
+      } catch (err) {
+        output.classList.add("error-outline");
+        showStatus(err.message || "An unexpected error occurred while saving.", "error");
+      } finally {
+        setButtonLoading(saveBtn, false, "Save to Database");
       }
     });
+
+    // Removed JS grid enforcement; layout is purely CSS and single-column.
   </script>
 </body>
 </html>

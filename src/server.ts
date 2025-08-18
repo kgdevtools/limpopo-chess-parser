@@ -11,8 +11,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Routes (✅ moved upload under /api)
 app.use("/api/upload", uploadRoutes);
@@ -27,6 +27,10 @@ app.get("/", (req, res) => {
 
 app.get("/tournaments", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "tournaments.html"));
+});
+
+app.get("/rankings", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "rankings.html"));
 });
 
 // Start server

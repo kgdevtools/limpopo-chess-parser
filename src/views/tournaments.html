@@ -4,132 +4,159 @@
   <meta charset="utf-8" />
   <title>Tournament Results</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0b0c0f;
+      --card: #111318;
+      --muted: #a9b1bd;
+      --text: #e6eaf2;
+      --primary: #3b82f6;
+      --border: #1f2430;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#f6f7fb; --card:#fff; --muted:#4b5563; --text:#0b0c0f; --border:#e5e7eb; }
+    }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      margin: 0;
-      padding: 1rem;
-      background: #f9fafb;
-      color: #111827;
+      font-family: "Geist", system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 0; padding: 16px; background: var(--bg); color: var(--text);
     }
-    h1 { text-align: center; }
+    h1 { text-align: center; margin: 8px 0 16px; }
+    #list { max-width: 1000px; margin: 0 auto; }
     .tournament {
-      background: white;
-      border-radius: 1rem;
-      padding: 1rem;
-      margin: 1rem auto;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      max-width: 800px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 12px auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
     }
+    .tournament h2 { margin: 0 0 6px; }
+    .muted { color: var(--muted); }
     button {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.5rem;
-      background: #2563eb;
-      color: white;
+      margin-top: 6px; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: linear-gradient(180deg, rgba(59,130,246,0.25), rgba(59,130,246,0.15)); color: var(--text);
       cursor: pointer;
     }
-    button:hover {
-      background: #1e40af;
+    button:hover { filter: brightness(1.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    th { background: rgba(255,255,255,0.04); font-weight: 600; }
+    /* Extra small (phones, portrait): 0–479px */
+    @media (max-width: 479px) {
+      table, th, td { font-size: 12px; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
+
+    /* Small (phones, landscape): 480–639px */
+    @media (min-width: 480px) and (max-width: 639px) {
+      table, th, td { font-size: 12px; }
     }
-    th, td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #e5e7eb;
-      text-align: left;
+
+    /* Medium (tablets, portrait): 640–767px */
+    @media (min-width: 640px) and (max-width: 767px) {
+      table, th, td { font-size: 13px; }
     }
-    th {
-      background: #f3f4f6;
-      font-weight: 600;
+
+    /* Large (tablets, landscape / small laptops): 768–1023px */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #list { max-width: 1000px; }
+      .tournament { padding: 16px; }
+      th, td { font-size: 13.5px; }
     }
-    @media (max-width: 600px) {
-      table, th, td { font-size: 0.85rem; }
+
+    /* Extra large (desktops): 1024–1279px */
+    @media (min-width: 1024px) and (max-width: 1279px) {
+      #list { max-width: 1100px; }
+      .tournament { padding: 18px; }
+      th, td { font-size: 14px; }
+    }
+
+    /* 2XL (large desktops): 1280px+ */
+    @media (min-width: 1280px) {
+      #list { max-width: 1320px; }
+      h1 { font-size: 28px; }
+      th, td { font-size: 15px; }
+      .tournament { padding: 20px; }
     }
   </style>
 </head>
 <body>
   <h1>Chess Tournament Results</h1>
-  <div id="list">Loading tournaments...</div>
+  <div id="list" class="muted">Loading tournaments...</div>
 
   <script>
-    function safe(val) {
-      return val && val !== "null" && val !== "undefined" ? val : "—";
-    }
+    function safe(val) { return val && val !== "null" && val !== "undefined" ? val : "—"; }
 
     async function loadTournaments() {
       const listDiv = document.getElementById("list");
-      const res = await fetch("/api/tournaments");
-      const tournaments = await res.json();
-
-      if (!tournaments.length) {
-        listDiv.textContent = "No tournaments found.";
-        return;
-      }
-
-      listDiv.innerHTML = "";
-      for (const t of tournaments) {
-        // Pick a reasonable title fallback
-        const title =
-          safe(t.organizer) !== "—" ? t.organizer :
-          safe(t.federation) !== "—" ? t.federation :
-          "Tournament " + t.id;
-
-        const container = document.createElement("div");
-        container.className = "tournament";
-        container.innerHTML = `
-          <h2>${title}</h2>
-          <p>
-             <strong>Location:</strong> ${safe(t.location)}<br/>
-             <strong>Date:</strong> ${safe(t.date)}<br/>
-             <strong>Uploaded:</strong> ${new Date(t.created_at).toLocaleString()}
-          </p>
-          <button onclick="viewTournament(${t.id})">View Results</button>
-          <div id="results-${t.id}" style="display:none;"></div>
-        `;
-        listDiv.appendChild(container);
+      try {
+        const res = await fetch("/api/tournaments");
+        if (!res.ok) throw new Error(`Failed to load (${res.status})`);
+        const tournaments = await res.json();
+        if (!tournaments.length) { listDiv.textContent = "No tournaments found."; return; }
+        listDiv.innerHTML = "";
+        for (const t of tournaments) {
+          const title =
+            safe(t.tournament_name) !== "—" ? t.tournament_name :
+            safe(t.organizer) !== "—" ? t.organizer :
+            safe(t.federation) !== "—" ? t.federation :
+            "Tournament " + t.id;
+          const container = document.createElement("div");
+          container.className = "tournament";
+          container.innerHTML = `
+            <h2>${title}</h2>
+            <p class="muted">
+               <strong>Location:</strong> ${safe(t.location)}<br/>
+               <strong>Date:</strong> ${safe(t.date)}<br/>
+               <strong>Uploaded:</strong> ${new Date(t.created_at).toLocaleString()}
+            </p>
+            <button onclick="viewTournament('${t.id}')">View Results</button>
+            <div id="results-${t.id}" style="display:none;"></div>
+          `;
+          listDiv.appendChild(container);
+        }
+      } catch (err) {
+        listDiv.textContent = err.message || "Failed to load tournaments.";
       }
     }
 
     async function viewTournament(id) {
-      const res = await fetch(`/api/tournaments/${id}`);
-      const { tournament, players } = await res.json();
       const div = document.getElementById(`results-${id}`);
-
-      // toggle visibility
-      if (div.style.display === "none") {
-        div.style.display = "block";
-      } else {
-        div.style.display = "none";
-        return;
-      }
-
+      if (div.style.display === "none") { div.style.display = "block"; } else { div.style.display = "none"; return; }
       if (div.innerHTML) return; // already loaded once
-
-      let html = `<table>
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>Rating</th>
-            <th>Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${players.map(p => `
+      try {
+        const res = await fetch(`/api/tournaments/${id}`);
+        if (!res.ok) throw new Error(`Failed to load details (${res.status})`);
+        const { tournament, players } = await res.json();
+        let html = `<table>
+          <thead>
             <tr>
-              <td>${safe(p.rank)}</td>
-              <td>${safe(p.name)}</td>
-              <td>${safe(p.rating)}</td>
-              <td>${safe(p.points)}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-      div.innerHTML = html;
+              <th>Rank</th>
+              <th>Player</th>
+              <th>Federation</th>
+              <th>Rating</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${players.map(p => `
+              <tr>
+                <td>${safe(p.rank)}</td>
+                <td>${safe(p.name)}</td>
+                <td>${safe(p.federation)}</td>
+                <td>${safe(p.rating)}</td>
+                <td>${safe(p.points)}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+        div.innerHTML = html;
+      } catch (err) {
+        div.innerHTML = `<div class="muted">${err.message || "Failed to load details."}</div>`;
+      }
     }
 
     loadTournaments();
