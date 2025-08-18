@@ -1,11 +1,14 @@
-// src/routes/uploadRoutes.ts
 import { Router } from "express";
 import multer from "multer";
-import { uploadFile } from "../controllers/uploadController";
+import { uploadFile, uploadToDb } from "../controllers/uploadController";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer();
 
-router.post("/upload", upload.single("file"), uploadFile);
+// Parse only
+router.post("/", upload.single("file"), uploadFile);
+
+// Save to DB
+router.post("/to-db", uploadToDb);
 
 export default router;

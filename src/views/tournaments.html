@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tournament Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 0;
+      padding: 1rem;
+      background: #f9fafb;
+      color: #111827;
+    }
+    h1 { text-align: center; }
+    .tournament {
+      background: white;
+      border-radius: 1rem;
+      padding: 1rem;
+      margin: 1rem auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      max-width: 800px;
+    }
+    button {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1e40af;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    @media (max-width: 600px) {
+      table, th, td { font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Chess Tournament Results</h1>
+  <div id="list">Loading tournaments...</div>
+
+  <script>
+    function safe(val) {
+      return val && val !== "null" && val !== "undefined" ? val : "—";
+    }
+
+    async function loadTournaments() {
+      const listDiv = document.getElementById("list");
+      const res = await fetch("/api/tournaments");
+      const tournaments = await res.json();
+
+      if (!tournaments.length) {
+        listDiv.textContent = "No tournaments found.";
+        return;
+      }
+
+      listDiv.innerHTML = "";
+      for (const t of tournaments) {
+        // Pick a reasonable title fallback
+        const title =
+          safe(t.organizer) !== "—" ? t.organizer :
+          safe(t.federation) !== "—" ? t.federation :
+          "Tournament " + t.id;
+
+        const container = document.createElement("div");
+        container.className = "tournament";
+        container.innerHTML = `
+          <h2>${title}</h2>
+          <p>
+             <strong>Location:</strong> ${safe(t.location)}<br/>
+             <strong>Date:</strong> ${safe(t.date)}<br/>
+             <strong>Uploaded:</strong> ${new Date(t.created_at).toLocaleString()}
+          </p>
+          <button onclick="viewTournament(${t.id})">View Results</button>
+          <div id="results-${t.id}" style="display:none;"></div>
+        `;
+        listDiv.appendChild(container);
+      }
+    }
+
+    async function viewTournament(id) {
+      const res = await fetch(`/api/tournaments/${id}`);
+      const { tournament, players } = await res.json();
+      const div = document.getElementById(`results-${id}`);
+
+      // toggle visibility
+      if (div.style.display === "none") {
+        div.style.display = "block";
+      } else {
+        div.style.display = "none";
+        return;
+      }
+
+      if (div.innerHTML) return; // already loaded once
+
+      let html = `<table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Rating</th>
+            <th>Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${players.map(p => `
+            <tr>
+              <td>${safe(p.rank)}</td>
+              <td>${safe(p.name)}</td>
+              <td>${safe(p.rating)}</td>
+              <td>${safe(p.points)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+      div.innerHTML = html;
+    }
+
+    loadTournaments();
+  </script>
+</body>
+</html>

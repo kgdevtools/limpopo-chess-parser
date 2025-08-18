@@ -2,23 +2,29 @@
 import * as XLSX from "xlsx";
 
 export interface TournamentMetadata {
+  tournament_name?: string;
   organizer?: string;
   federation?: string;
   chief_arbiter?: string;
-  time_control?: string;
+  deputy_chief_arbiter?: string;
+  tournament_director?: string;
+  arbiter?: string;
+  time_control?: string;      // numeric + increment
+  rate_of_play?: string;      // Standard, Rapid, Blitz
   location?: string;
   rounds?: number | null;
   tournament_type?: string;
-  rating_type?: string;
+  rating_calculation?: string;  // ✅ replaces old rating_type
   date?: string;
   average_elo?: number | null;
   average_age?: number | null;
+  source?: string;
 }
 
 export interface PlayerRanking {
   rank: number;
   name?: string;
-  federation?: string; // ✅ added
+  federation?: string;
   rating: number | null;
   rounds: any[];
   points: number | null;
@@ -60,6 +66,11 @@ export class ParserService {
   private extractMetadata(rows: any[][]): TournamentMetadata {
     const metadata: TournamentMetadata = {};
 
+    // ✅ Tournament Name (2nd row if available)
+    if (rows.length > 1 && rows[1][0]) {
+      metadata.tournament_name = this.cleanCell(rows[1][0]);
+    }
+
     for (const row of rows) {
       if (!row || row.length === 0) continue;
       const cell = this.cleanCell(row[0]);
@@ -67,16 +78,54 @@ export class ParserService {
       if (/organizer/i.test(cell)) metadata.organizer = row[0].split(":").pop()?.trim();
       if (/federation/i.test(cell)) metadata.federation = row[0].split(":").pop()?.trim();
       if (/chief arbiter/i.test(cell)) metadata.chief_arbiter = row[0].split(":").pop()?.trim();
-      if (/time control/i.test(cell)) metadata.time_control = row[0].split(":").pop()?.trim();
+      if (/deputy chief arbiter/i.test(cell)) metadata.deputy_chief_arbiter = row[0].split(":").pop()?.trim();
+      if (/tournament director/i.test(cell)) metadata.tournament_director = row[0].split(":").pop()?.trim();
+      if (/arbiter/i.test(cell) && !/chief|deputy/i.test(cell)) metadata.arbiter = row[0].split(":").pop()?.trim();
+
+      if (/time control/i.test(cell)) {
+        const raw = row[0].split(":").pop()?.trim();
+        if (raw) {
+          const match = raw.match(/(\d+\s*\+?\s*\d*'?)\s*\((.*?)\)/i);
+          if (match) {
+            metadata.time_control = match[1].trim(); // numeric part e.g. 25 + 3'
+            metadata.rate_of_play = match[2].trim(); // text part e.g. Rapid, Standard
+          } else {
+            metadata.time_control = raw;
+          }
+        }
+      }
+
       if (/location/i.test(cell)) metadata.location = row[0].split(":").pop()?.trim();
       if (/rounds?/i.test(cell)) metadata.rounds = this.parseNumber(row[1]);
       if (/type/i.test(cell)) metadata.tournament_type = row[0].split(":").pop()?.trim();
-      if (/rating/i.test(cell)) metadata.rating_type = row[0].split(":").pop()?.trim();
+
+      // ✅ handle both "rating calculation" and legacy "rating type"
+      if (/rating (calculation|type)/i.test(cell)) {
+        metadata.rating_calculation = row[0].split(":").pop()?.trim();
+      }
+
       if (/date/i.test(cell)) metadata.date = row[0].split(":").pop()?.trim();
+
+      if (/rating-ø/i.test(cell) || /average age/i.test(cell)) {
+        const parts = cell.split(":").pop()?.trim().split("/");
+        if (parts && parts.length === 2) {
+          metadata.average_elo = this.parseNumber(parts[0]);
+          metadata.average_age = this.parseNumber(parts[1]);
+        }
+      }
     }
 
-    metadata.average_elo = null;
-    metadata.average_age = null;
+    // ✅ Extract last rows for source URL
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+      const text = row.join(" ");
+      const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+      if (urlMatch) {
+        metadata.source = urlMatch[0];
+        break;
+      }
+    }
 
     console.log(`[ParserService:extractMetadata] File=${this.fileName} Extracted metadata=`, metadata);
     return metadata;
@@ -109,14 +158,14 @@ export class ParserService {
 
       const rankIdx = headers.findIndex((h) => /^(rk\.?|rank|pos\.?|position)$/i.test(h));
       const nameIdx = headers.findIndex((h) => /name/i.test(h));
-      const fedIdx = headers.findIndex((h) => /^fed$/i.test(h)); // ✅ federation column
+      const fedIdx = headers.findIndex((h) => /^fed$/i.test(h));
       const ratingIdx = headers.findIndex((h) => /(rtg|elo)/i.test(h));
       const pointsIdx = headers.findIndex((h) => /pts?/i.test(h));
 
       const player: PlayerRanking = {
         rank: this.parseNumber(row[rankIdx]) ?? 0,
         name: this.cleanCell(row[nameIdx]),
-        federation: fedIdx >= 0 ? this.cleanCell(row[fedIdx]) : undefined, // ✅ FED
+        federation: fedIdx >= 0 ? this.cleanCell(row[fedIdx]) : undefined,
         rating: this.parseNumber(row[ratingIdx]),
         rounds: [],
         points: this.parseFloat(row[pointsIdx]) ?? 0,
@@ -184,4 +233,10 @@ export class ParserService {
     const n = Number(this.cleanCell(val));
     return isNaN(n) ? null : n;
   }
+}
+
+// ✅ Helper function so server.ts can call directly
+export function parseExcelToJson(buffer: Buffer, fileName = "uploaded.xlsx") {
+  const parser = new ParserService(fileName);
+  return parser.parse(buffer);
 }

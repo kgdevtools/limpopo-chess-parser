@@ -1,35 +1,118 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Upload Chess Tournament Excel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; padding: 2rem; }
-      form { display: flex; gap: 1rem; align-items: center; }
-      input[type="file"] { padding: .5rem; }
-      button { padding: .6rem 1rem; cursor: pointer; }
-      pre { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: .5rem; }
-    </style>
-  </head>
-  <body>
-    <h1>Upload Chess Tournament Excel (.xlsx)</h1>
-    <form id="f" action="/upload" method="post" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".xlsx" required />
-      <button type="submit">Upload</button>
-    </form>
-    <h2>Response</h2>
-    <pre id="out">—</pre>
-    <script>
-      const form = document.getElementById("f");
-      const out = document.getElementById("out");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const fd = new FormData(form);
-        const res = await fetch("/upload", { method: "POST", body: fd });
-        const txt = res.ok ? JSON.stringify(await res.json(), null, 2) : await res.text();
-        out.textContent = txt;
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tournament Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    form {
+      margin-bottom: 10px;
+    }
+    textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      white-space: pre;
+      overflow: auto;
+      font-family: "Courier New", monospace;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #1e1e1e;
+      color: #f8f8f2;
+      font-size: 14px;
+    }
+    .buttons {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .link {
+      margin-top: 15px;
+      display: none;
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload Tournament File</h1>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="file" required />
+    <button type="submit">Parse File</button>
+  </form>
+
+  <textarea id="output" readonly placeholder="Parsed JSON will appear here..."></textarea>
+
+  <div class="buttons">
+    <button id="saveBtn" disabled>Save to Database</button>
+  </div>
+
+  <div class="link" id="tournamentsLink">
+    ✅ Saved! <a href="/tournaments.html">Go to Tournaments</a>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const output = document.getElementById("output");
+    const saveBtn = document.getElementById("saveBtn");
+    const tournamentsLink = document.getElementById("tournamentsLink");
+
+    let parsedData = null;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-    </script>
-  </body>
+
+      const data = await res.json();
+      parsedData = data;
+
+      output.value = JSON.stringify(data, null, 2);
+      saveBtn.disabled = false;
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      if (!parsedData) return;
+
+      const res = await fetch("/api/upload/to-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedData),
+      });
+
+      const result = await res.json();
+      console.log("Save result:", result);
+
+      if (result.message) {
+        tournamentsLink.style.display = "block";
+      }
+    });
+  </script>
+</body>
 </html>

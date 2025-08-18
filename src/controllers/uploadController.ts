@@ -1,21 +1,41 @@
 // src/controllers/uploadController.ts
 import { Request, Response } from "express";
-import { ParserService } from "../services/parserService";
+import { parseExcelToJson } from "../services/parserService";
+import { saveTournamentNormalized } from "../repositories/tournamentRepo";
 
-export const uploadFile = (req: Request, res: Response) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
+/**
+ * POST /upload
+ * Parses the uploaded Excel and returns JSON (no DB write).
+ */
+export async function uploadFile(req: Request, res: Response) {
   try {
-    const parser = new ParserService(req.file.originalname);
-    const result = parser.parse(req.file.buffer);
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-    console.log(`[uploadController:uploadFile] File=${req.file.originalname} Parsed=`, result.tournament_metadata);
-
-    res.json(result);
-  } catch (err) {
-    console.error(`[uploadController:uploadFile] File=${req.file.originalname} Error=`, err);
-    res.status(500).json({ error: "Failed to parse file" });
+    const parsed = await parseExcelToJson(req.file.buffer, req.file.originalname);
+    return res.json(parsed);
+  } catch (error) {
+    console.error("[uploadController] parse error:", error);
+    return res.status(500).json({ error: "Failed to parse file" });
   }
-};
+}
+
+/**
+ * POST /upload-to-db
+ * Accepts parsed JSON (TournamentData) and persists normalized data to Supabase.
+ */
+export async function uploadToDb(req: Request, res: Response) {
+  try {
+    const body = req.body;
+    if (!body || !body.tournament_metadata || !body.player_rankings) {
+      return res.status(400).json({ error: "Invalid payload: missing tournament data" });
+    }
+
+    const result = await saveTournamentNormalized(body);
+    return res.json({ message: "Saved to Supabase", ...result });
+  } catch (error) {
+    console.error("[uploadController] save error:", error);
+    return res.status(500).json({ error: "Failed to save to Supabase" });
+  }
+}
